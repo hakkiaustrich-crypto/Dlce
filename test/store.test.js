@@ -483,6 +483,35 @@ test('completed orders can be marked voided once with the automatic-close reason
   assert.equal(store.markOrderVoided(order.id, 'No Vouch = Voided'), null);
 });
 
+test('completed orders persist a unique snapshot of the customer roles for vouch restoration', () => {
+  const store = createStore();
+  const order = store.addOrder({
+    guildId: 'guild-1',
+    customerId: 'buyer-1',
+    sourceChannelId: 'ticket-1',
+    items: 'DEKOR',
+    paymentMethod: 'GCash',
+    supporterId: 'staff-1',
+    quantity: 1,
+  });
+  store.finishOrder(order.id, 'completed');
+
+  assert.deepEqual(
+    store.setOrderRoleSnapshot(order.id, ['role-1', 'role-2', 'role-1']).rolesBeforeCompletion,
+    ['role-1', 'role-2'],
+  );
+  assert.deepEqual(store.getOrder(order.id).rolesBeforeCompletion, ['role-1', 'role-2']);
+  assert.deepEqual(store.getLatestCustomerRoleSnapshot('guild-1', 'buyer-1'), ['role-1', 'role-2']);
+  assert.throws(() => store.setOrderRoleSnapshot(order.id, ['role-1', null]), TypeError);
+  store.addVouch({
+    guildId: 'guild-1',
+    userId: 'buyer-1',
+    items: 'DEKOR',
+    ticketChannelId: 'ticket-1',
+  });
+  assert.equal(store.getLatestCustomerRoleSnapshot('guild-1', 'buyer-1'), null);
+});
+
 test('voided orders without an existing ticket vouch can be listed for recovery', () => {
   const store = createStore();
   const eligible = store.addOrder({

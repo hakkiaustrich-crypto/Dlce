@@ -348,6 +348,35 @@ class OrderStore {
     return order;
   }
 
+  setOrderRoleSnapshot(orderId, roleIds) {
+    if (!Array.isArray(roleIds) || roleIds.some((roleId) => typeof roleId !== 'string')) {
+      throw new TypeError('Order role snapshot must be an array of role IDs.');
+    }
+    const state = this.read();
+    const order = state.orders.find((entry) => entry.id === orderId);
+    if (!order) return null;
+    order.rolesBeforeCompletion = [...new Set(roleIds)];
+    this.write(state);
+    return order;
+  }
+
+  getLatestCustomerRoleSnapshot(guildId, customerId) {
+    const state = this.read();
+    const vouchedTicketIds = new Set((state.vouches ?? [])
+      .filter((vouch) => vouch.guildId === guildId)
+      .map((vouch) => vouch.ticketChannelId));
+    return (state.orders ?? [])
+      .filter((order) => (
+        order.guildId === guildId
+        && order.customerId === customerId
+        && order.status === 'completed'
+        && Array.isArray(order.rolesBeforeCompletion)
+        && (!order.sourceChannelId || !vouchedTicketIds.has(order.sourceChannelId))
+      ))
+      .sort((first, second) => (second.finishedAt ?? '').localeCompare(first.finishedAt ?? ''))
+      .map((order) => order.rolesBeforeCompletion)[0] ?? null;
+  }
+
   listCompleted(guildId) {
     return this.read().orders
       .filter((order) => order.status === 'completed' && (!guildId || order.guildId === guildId));

@@ -16,6 +16,8 @@ const {
   helpEmbed,
   multiplicationContainer,
   paymentReminderContainer,
+  paymentMethodContainer,
+  trudisPaymentContainer,
   paymentDetailsEmbed,
   vouchEmbed,
   vouchPreviewButtons,
@@ -684,6 +686,26 @@ test('payment reminder V2 container supports servers without a custom icon', () 
       '_ _ ─────────────  <:purplecupcake:1557485583960379402>  ─────────────',
     ].join('\n'),
   );
+});
+
+test('/payment offers gray Trudis and Giyu buttons in a V2 container', () => {
+  const container = paymentMethodContainer().toJSON();
+  assert.equal(container.type, 17);
+  assert.equal(container.components.length, 1);
+  const buttons = container.components[0].components;
+  assert.deepEqual(buttons.map(({ custom_id, label, style }) => [custom_id, label, style]), [
+    ['payment:method:trudis', 'trudis', ButtonStyle.Secondary],
+    ['payment:method:giyu', 'giyu', ButtonStyle.Secondary],
+  ]);
+});
+
+test('Trudis payment V2 container displays the attached payment image', () => {
+  const container = trudisPaymentContainer().toJSON();
+  assert.equal(container.type, 17);
+  assert.deepEqual(container.components, [{
+    type: 12,
+    items: [{ media: { url: 'attachment://trudis-payment.png' } }],
+  }]);
 });
 
 test('/tip send message uses the requested custom emojis and layout', () => {

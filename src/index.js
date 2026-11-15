@@ -25,6 +25,8 @@ const {
   orderCompletionReminderEmbed,
   multiplicationContainer,
   paymentReminderContainer,
+  paymentMethodContainer,
+  trudisPaymentContainer,
   vouchEmbed,
   warrantyActivatedContainer,
   vouchPreviewButtons,
@@ -106,7 +108,11 @@ const {
   isStaff,
   hasConfiguredOwnerRole,
 } = require('./permissions');
-const { setVoidedRole } = require('./voided-role');
+const {
+  getMemberRoleSnapshot,
+  restoreMemberRoles,
+  setVoidedRole,
+} = require('./voided-role');
 
 const store = new OrderStore();
 const client = new Client({
@@ -513,6 +519,7 @@ async function handleVouchPreviewButton(interaction) {
         attachments: [],
       });
     }
+    const orderToRestore = preview.voidedRecovery ? eligibleOrder : eligibleOrder.order;
     const channel = await client.channels.fetch(preview.channelId);
     if (!channel
       || channel.guildId !== preview.guildId
@@ -536,13 +543,7 @@ async function handleVouchPreviewButton(interaction) {
       throw new Error(`Vouch already exists for ticket ${preview.ticketChannelId}.`);
     }
     await updateVoidedRole(preview.guildId, preview.userId, false);
-    await updateMemberRole(
-      preview.guildId,
-      preview.userId,
-      SHOP_ANNOUNCEMENT_ROLE_ID,
-      true,
-      'shop announcement',
-    );
+    await restoreOrderCustomerRoles(orderToRestore);
     let ownerDmSent = false;
     if (preview.warrantyDmUserId) {
       try {
@@ -756,6 +757,43 @@ async function updateVoidedRole(guildId, userId, enabled) {
   const roleId = store.getSettings(guildId)?.voidedRoleId;
   if (!roleId) return;
   await updateMemberRole(guildId, userId, roleId, enabled, 'voided');
+}
+
+async function snapshotOrderCustomerRoles(order) {
+  try {
+    const guild = await client.guilds.fetch(order.guildId);
+    const currentRoleIds = await getMemberRoleSnapshot(guild, order.customerId);
+    const voidedRoleId = store.getSettings(order.guildId)?.voidedRoleId;
+    const hadVoidedRole = voidedRoleId && currentRoleIds.includes(voidedRoleId);
+    const previousSnapshot = hadVoidedRole
+      ? store.getLatestCustomerRoleSnapshot(order.guildId, order.customerId)
+      : null;
+    const roleIds = previousSnapshot
+      ?? currentRoleIds.filter((roleId) => roleId !== voidedRoleId);
+    store.setOrderRoleSnapshot(order.id, roleIds);
+  } catch (error) {
+    console.error(`Could not save roles for customer ${order.customerId} on order ${order.id}:`, error);
+  }
+}
+
+async function restoreOrderCustomerRoles(order) {
+  if (Array.isArray(order.rolesBeforeCompletion)) {
+    try {
+      const guild = await client.guilds.fetch(order.guildId);
+      await restoreMemberRoles(guild, order.customerId, order.rolesBeforeCompletion);
+    } catch (error) {
+      console.error(`Could not restore roles for customer ${order.customerId} from order ${order.id}:`, error);
+    }
+    return;
+  }
+
+  await updateMemberRole(
+    order.guildId,
+    order.customerId,
+    SHOP_ANNOUNCEMENT_ROLE_ID,
+    true,
+    'shop announcement',
+  );
 }
 
 async function updateMemberRole(guildId, userId, roleId, enabled, roleLabel) {
@@ -1568,10 +1606,10 @@ async function handleCommand(interaction) {
       return interaction.reply({ content: 'Run `/payment` inside an active ticket.', ephemeral: true });
     }
     await sendV2(interaction.channel, {
-      components: [paymentReminderContainer(interaction.guild?.iconURL())],
+      components: [paymentMethodContainer()],
       allowedMentions: { parse: [] },
     });
-    return interaction.reply({ content: 'Payment reminder sent in this ticket.', ephemeral: true });
+    return interaction.reply({ content: 'Payment options sent in this ticket.', ephemeral: true });
   }
 
   if (interaction.commandName === 'giveaway') {
@@ -2139,6 +2177,7 @@ async function handleButton(interaction) {
   const notificationFailures = [];
   if (action === 'complete') {
     scheduleVoidCheckForOrder(order);
+    await snapshotOrderCustomerRoles(order);
     await updateMemberRole(
       order.guildId,
       order.customerId,
@@ -2215,6 +2254,25 @@ async function handlePaymentButton(interaction) {
       allowedMentions: { parse: [] },
       ephemeral: true,
     });
+  }
+  if (interaction.customId === 'payment:method:trudis') {
+    return interaction.reply({
+      components: [trudisPaymentContainer()],
+      files: [{
+        attachment: path.join(__dirname, '..', 'assets', 'trudis-payment.png'),
+        name: 'trudis-payment.png',
+      }],
+      flags: MessageFlags.IsComponentsV2,
+      allowedMentions: { parse: [] },
+      ephemeral: true,
+    });
+  }
+  if (interaction.customId === 'payment:method:giyu') {
+    await sendV2(channel, {
+      components: [paymentReminderContainer(channel.guild?.iconURL())],
+      allowedMentions: { parse: [] },
+    });
+    return interaction.reply({ content: 'Giyu payment details sent in this ticket.', ephemeral: true });
   }
   if (interaction.customId === 'payment:no') {
     return requestTicketClosure(interaction, channel, ownerId, 'customer');

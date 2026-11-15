@@ -343,6 +343,28 @@ function paymentReminderContainer(serverIconUrl) {
   return container.addActionRowComponents(paymentReminderButtons());
 }
 
+function paymentMethodContainer() {
+  return new ContainerBuilder()
+    .setAccentColor(0x3478c7)
+    .addActionRowComponents(new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('payment:method:trudis')
+        .setLabel('trudis')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId('payment:method:giyu')
+        .setLabel('giyu')
+        .setStyle(ButtonStyle.Secondary),
+    ));
+}
+
+function trudisPaymentContainer() {
+  return new ContainerBuilder()
+    .addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder().setURL('attachment://trudis-payment.png'),
+    ));
+}
+
 function vouchEmbed(user, items, feedback, vouchedAt = new Date()) {
   const date = new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
@@ -950,6 +972,8 @@ module.exports = {
   closeShopContainer,
   giveawayContainer,
   paymentReminderContainer,
+  paymentMethodContainer,
+  trudisPaymentContainer,
   vouchEmbed,
   warrantyActivatedContainer,
   paymentDetailsEmbed,
