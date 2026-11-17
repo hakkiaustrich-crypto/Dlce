@@ -61,6 +61,7 @@ const {
 const { voidedOrderMessage } = require('../src/embeds');
 const { parseOrderTicketForm } = require('../src/order-ticket-form');
 const { parseOthersTicketForm } = require('../src/others-ticket-form');
+const { isOrderVouchable } = require('../src/order-vouch-eligibility');
 const { parseDmsOrderForm, parseDmsPremsForm } = require('../src/dms-order-form');
 const { multiplyAmounts, calculateExpression } = require('../src/multiplication');
 const { sendThenDeleteCommand } = require('../src/message-command-actions');
@@ -165,6 +166,14 @@ test('order ticket form accepts only listed products and payment methods with qu
     quantity: '3',
     paymentMethod: 'GCASH',
   }), { error: 'PRICE cannot be blank.' });
+});
+
+test('orders can be vouched before completion and are ineligible after being voided', () => {
+  assert.equal(isOrderVouchable({ status: 'pending' }), true);
+  assert.equal(isOrderVouchable({ status: 'claimed' }), true);
+  assert.equal(isOrderVouchable({ status: 'completed' }), true);
+  assert.equal(isOrderVouchable({ status: 'completed', voidedAt: '2026-11-16T00:00:00.000Z' }), false);
+  assert.equal(isOrderVouchable(null), false);
 });
 
 test('report ticket modal requires the product, issue, and rules confirmation', () => {
@@ -528,10 +537,11 @@ test('ticket creation finds existing tickets and serializes simultaneous submiss
   assert.equal(channels.size, 1);
 });
 
-test('order tickets bypass the single-active-ticket rule while other ticket types remain limited', () => {
+test('order, report, and others tickets allow multiple active tickets', () => {
   assert.equal(ticketTypeAllowsMultipleActiveTickets('order'), true);
-  assert.equal(ticketTypeAllowsMultipleActiveTickets('report'), false);
-  assert.equal(ticketTypeAllowsMultipleActiveTickets('others'), false);
+  assert.equal(ticketTypeAllowsMultipleActiveTickets('report'), true);
+  assert.equal(ticketTypeAllowsMultipleActiveTickets('others'), true);
+  assert.equal(ticketTypeAllowsMultipleActiveTickets('unknown'), false);
 });
 
 test('/ticket setup is registered for administrators with an optional staff role', () => {
@@ -688,15 +698,24 @@ test('payment reminder V2 container supports servers without a custom icon', () 
   );
 });
 
-test('/payment offers gray Trudis and Giyu buttons in a V2 container', () => {
+test('/payment offers Trudis and Giyu in a dropdown with the requested prompt', () => {
   const container = paymentMethodContainer().toJSON();
   assert.equal(container.type, 17);
-  assert.equal(container.components.length, 1);
-  const buttons = container.components[0].components;
-  assert.deepEqual(buttons.map(({ custom_id, label, style }) => [custom_id, label, style]), [
-    ['payment:method:trudis', 'trudis', ButtonStyle.Secondary],
-    ['payment:method:giyu', 'giyu', ButtonStyle.Secondary],
-  ]);
+  assert.equal(container.components.length, 2);
+  assert.equal(container.components[0].content, 'who do you want to handle your order?');
+  const menu = container.components[1].components[0];
+  assert.deepEqual(
+    {
+      customId: menu.custom_id,
+      placeholder: menu.placeholder,
+      options: menu.options.map(({ label, value }) => [label, value]),
+    },
+    {
+      customId: 'payment:method',
+      placeholder: 'who do you want to handle your order?',
+      options: [['trudis', 'trudis'], ['giyu', 'giyu']],
+    },
+  );
 });
 
 test('Trudis payment V2 container displays the attached payment image', () => {
@@ -1114,8 +1133,8 @@ test('PREMS order DM uses the account details layout and policy', () => {
     password: 'secret',
   }], 'PREMS');
   assert.match(message, /_ _   item   :   Premium account/);
-  assert.match(message, /_ _   email  :   buyer@example\.com/);
-  assert.match(message, /_ _   pass   :   secret/);
+  assert.match(message, /_ _   email  :   \|\|buyer@example\.com\|\|/);
+  assert.match(message, /_ _   pass   :   \|\|secret\|\|/);
   assert.match(message, /\*\*PREM  ACC  POLICY\*\*/);
   assert.match(message, /proof   of   log-in/);
   assert.match(message, /<:0cpink_bow:1562803659190829126>/);

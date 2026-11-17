@@ -89,6 +89,7 @@ const {
 const { parseTicketMessageCommand } = require('./ticket-message-commands');
 const { parseOrderTicketForm } = require('./order-ticket-form');
 const { parseOrderVouchForm } = require('./order-vouch-form');
+const { isOrderVouchable } = require('./order-vouch-eligibility');
 const { parseOthersTicketForm } = require('./others-ticket-form');
 const { parseDmsOrderForm, parseDmsPremsForm } = require('./dms-order-form');
 const { calculateExpression } = require('./multiplication');
@@ -206,12 +207,7 @@ async function getEligibleVouchTicket(guildId, ticketChannelId, userId) {
     return null;
   }
   const order = store.getLatestOrderForSource(guildId, channel.id, userId);
-  const finishedAt = new Date(order?.finishedAt ?? '').getTime();
-  if (!order
-    || order.status !== 'completed'
-    || !Number.isFinite(finishedAt)
-    || Date.now() > finishedAt + VOUCH_WINDOW_MS
-    || order.voidedAt
+  if (!isOrderVouchable(order)
     || store.hasVouchForTicket(guildId, channel.id)) {
     return null;
   }
@@ -456,11 +452,15 @@ async function handleDmsOrderFormButton(interaction) {
   await interaction.deferReply({ ephemeral: true });
   try {
     const user = await client.users.fetch(form.buyerId);
-    await sendV2(user, standardPayload({
+    const orderMessagePayload = {
       content: dmsOrderMessage(form.orders, form.product),
       allowedMentions: { parse: [] },
       flags: MessageFlags.SuppressEmbeds,
-    }));
+    };
+    const payload = ['NAYTRO', 'DEKOR'].includes(form.product)
+      ? orderMessagePayload
+      : standardPayload(orderMessagePayload);
+    await sendV2(user, payload);
     pendingDmsOrderForms.delete(formId);
     return interaction.editReply({ content: `Order message sent to ${user}.` });
   } catch (error) {
@@ -701,8 +701,11 @@ function scheduleVoidCheckForOrder(order) {
     scheduledVoidChecks.delete(order.id);
     const currentOrder = store.getOrder(order.id);
     if (!currentOrder || currentOrder.status !== 'completed' || currentOrder.voidedAt) return;
+    const hasTicketVouch = currentOrder.sourceChannelId
+      && store.hasVouchForTicket(currentOrder.guildId, currentOrder.sourceChannelId);
     const vouchDeadline = finishedAt + VOUCH_WINDOW_MS;
-    if (store.hasVouchWithinWindow(currentOrder.guildId, currentOrder.customerId, finishedAt, vouchDeadline)) return;
+    if (hasTicketVouch
+      || store.hasVouchWithinWindow(currentOrder.guildId, currentOrder.customerId, finishedAt, vouchDeadline)) return;
     const settings = store.getSettings(currentOrder.guildId);
     const voidReason = 'No Vouch = Voided';
     store.markOrderVoided(currentOrder.id, voidReason);
@@ -1852,7 +1855,7 @@ async function handleCommand(interaction) {
     );
     if (!ticket) {
       return interaction.reply({
-        content: 'This order ticket must have a completed order and must not already have a vouch.',
+        content: 'This order ticket must have an order and must not already have a vouch.',
         ephemeral: true,
       });
     }
@@ -2242,7 +2245,7 @@ async function handlePaymentButton(interaction) {
     return interaction.reply({ content: 'Payment buttons only work inside an active ticket.', ephemeral: true });
   }
   if (interaction.user.id !== ownerId) {
-    return interaction.reply({ content: 'Only the ticket creator can use these payment buttons.', ephemeral: true });
+    return interaction.reply({ content: 'Only the ticket creator can use these payment options.', ephemeral: true });
   }
   if (interaction.customId === 'payment:yes') {
     return interaction.reply({
@@ -2255,7 +2258,9 @@ async function handlePaymentButton(interaction) {
       ephemeral: true,
     });
   }
-  if (interaction.customId === 'payment:method:trudis') {
+  const paymentMethod = interaction.values?.[0]
+    ?? interaction.customId.match(/^payment:method:(trudis|giyu)$/)?.[1];
+  if (paymentMethod === 'trudis') {
     return interaction.reply({
       components: [trudisPaymentContainer()],
       files: [{
@@ -2267,7 +2272,7 @@ async function handlePaymentButton(interaction) {
       ephemeral: true,
     });
   }
-  if (interaction.customId === 'payment:method:giyu') {
+  if (paymentMethod === 'giyu') {
     await sendV2(channel, {
       components: [paymentReminderContainer(channel.guild?.iconURL())],
       allowedMentions: { parse: [] },
@@ -2310,6 +2315,7 @@ client.on('interactionCreate', async (interaction) => {
     else if (interaction.isButton() && interaction.customId.startsWith('ticket:')) await handleTicketButton(interaction);
     else if (interaction.isButton() && interaction.customId.startsWith('order:')) await handleButton(interaction);
     else if (interaction.isButton() && interaction.customId.startsWith('payment:')) await handlePaymentButton(interaction);
+    else if (interaction.isStringSelectMenu() && interaction.customId === 'payment:method') await handlePaymentButton(interaction);
     else if (interaction.isModalSubmit() && interaction.customId.startsWith('ticket-close-reason:')) {
       await handleTicketCloseReasonModal(interaction);
     }

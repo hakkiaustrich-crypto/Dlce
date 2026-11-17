@@ -137,7 +137,7 @@ test('completion reminder sent to the order ticket bypasses V2 container convers
   assert.deepEqual(sentPayload.allowedMentions, { parse: [] });
 });
 
-test('order DMs stay plain text and suppress link previews', async () => {
+test('standard order DMs stay plain text and suppress link previews', async () => {
   let sentPayload;
   await sendV2({
     send: async (payload) => {
@@ -156,6 +156,27 @@ test('order DMs stay plain text and suppress link previews', async () => {
   assert.equal(sentPayload.flags, MessageFlags.SuppressEmbeds);
   assert.equal(sentPayload.flags & MessageFlags.IsComponentsV2, 0);
   assert.deepEqual(sentPayload.allowedMentions, { parse: [] });
+});
+
+test('NAYTRO and DEKOR order DMs can be sent in V2 containers', async () => {
+  for (const product of ['NAYTRO', 'DEKOR']) {
+    let sentPayload;
+    await sendV2({
+      send: async (payload) => {
+        sentPayload = payload;
+        return payload;
+      },
+    }, {
+      content: `${product} order details`,
+      allowedMentions: { parse: [] },
+      flags: MessageFlags.SuppressEmbeds,
+    });
+
+    assert.equal(sentPayload.content, undefined);
+    assert.equal(sentPayload.flags & MessageFlags.IsComponentsV2, MessageFlags.IsComponentsV2);
+    assert.equal(sentPayload.flags & MessageFlags.SuppressEmbeds, MessageFlags.SuppressEmbeds);
+    assert.match(sentPayload.components[0].toJSON().components[0].content, new RegExp(`${product} order details`));
+  }
 });
 
 test('/tip send bypasses V2 container conversion and keeps its buyer mention', async () => {

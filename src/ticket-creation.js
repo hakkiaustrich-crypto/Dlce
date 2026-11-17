@@ -21,7 +21,7 @@ function findActiveTicket(channels, ownerId) {
 }
 
 function ticketTypeAllowsMultipleActiveTickets(type) {
-  return type === 'order';
+  return ['order', 'report', 'others'].includes(type);
 }
 
 module.exports = { findActiveTicket, withTicketCreationLock, ticketTypeAllowsMultipleActiveTickets };

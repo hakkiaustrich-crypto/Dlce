@@ -11,6 +11,7 @@ const {
   MessageFlags,
   ModalBuilder,
   SectionBuilder,
+  StringSelectMenuBuilder,
   TextDisplayBuilder,
   ThumbnailBuilder,
   TextInputBuilder,
@@ -346,15 +347,15 @@ function paymentReminderContainer(serverIconUrl) {
 function paymentMethodContainer() {
   return new ContainerBuilder()
     .setAccentColor(0x3478c7)
+    .addTextDisplayComponents(new TextDisplayBuilder().setContent('who do you want to handle your order?'))
     .addActionRowComponents(new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId('payment:method:trudis')
-        .setLabel('trudis')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId('payment:method:giyu')
-        .setLabel('giyu')
-        .setStyle(ButtonStyle.Secondary),
+      new StringSelectMenuBuilder()
+        .setCustomId('payment:method')
+        .setPlaceholder('who do you want to handle your order?')
+        .addOptions(
+          { label: 'trudis', value: 'trudis' },
+          { label: 'giyu', value: 'giyu' },
+        ),
     ));
 }
 
@@ -539,8 +540,8 @@ function dmsOrderMessage(orders, product) {
       '_ _           **__a   gift   from   𝓓olce   𝓥ita__**   <:lavendercupcake:1562825401309335573>',
       '_ _',
       `_ _   item   :   ${premName}`,
-      `_ _   email  :   ${email}`,
-      `_ _   pass   :   ${password}`,
+      `_ _   email  :   ||${email}||`,
+      `_ _   pass   :   ||${password}||`,
       '_ _',
       `_ _ ${'<:dolcevita:1567562931326025738><:dolcevita:1567562829001658428>'.repeat(7)}`,
       '_ _',
