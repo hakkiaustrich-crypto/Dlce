@@ -721,13 +721,13 @@ function scheduleVoidCheckForOrder(order) {
           throw new Error(`Configured voided channel ${settings.voidedChannelId} is unavailable or not a sendable server text channel.`);
         }
         const user = await client.users.fetch(currentOrder.customerId).catch(() => null);
-        await sendV2(channel, {
+        await sendV2(channel, standardPayload({
           content: voidedOrderMessage(
             user ?? { id: currentOrder.customerId, username: `user-${currentOrder.customerId}` },
             currentOrder.items ?? currentOrder.item ?? 'Unknown product',
           ),
           allowedMentions: { users: [currentOrder.customerId] },
-        });
+        }));
       } catch (error) {
         console.error(`Could not post void notification for order ${currentOrder.id}:`, error);
       }

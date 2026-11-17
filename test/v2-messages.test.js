@@ -137,6 +137,25 @@ test('completion reminder sent to the order ticket bypasses V2 container convers
   assert.deepEqual(sentPayload.allowedMentions, { parse: [] });
 });
 
+test('voided order notice bypasses V2 conversion and remains a plain text message', async () => {
+  let sentPayload;
+  await sendV2({
+    send: async (payload) => {
+      sentPayload = payload;
+      return payload;
+    },
+  }, standardPayload({
+    content: 'Buyer warranty has been voided.',
+    allowedMentions: { users: ['buyer-1'] },
+  }));
+
+  assert.equal(sentPayload.content, 'Buyer warranty has been voided.');
+  assert.equal(sentPayload.components, undefined);
+  assert.equal(sentPayload.embeds, undefined);
+  assert.equal(sentPayload.flags, undefined);
+  assert.deepEqual(sentPayload.allowedMentions, { users: ['buyer-1'] });
+});
+
 test('standard order DMs stay plain text and suppress link previews', async () => {
   let sentPayload;
   await sendV2({

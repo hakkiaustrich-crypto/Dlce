@@ -163,12 +163,10 @@ function voidedOrderMessage(user, product) {
     `_ _  ${user?.id ? `<@${user.id}>` : '@user'}, your __warranty__ has been **voided**.`,
     '_ _',
     `_ _ <:purpleflower:1557500052107304981>  user  :  ${username}  | ${userId}`,
-    '_ _ <:purpleflower:1557500052107304981>  item purchased  :',
-    `_ _ ⎯⎯  ${String(product ?? 'Unknown product')}`,
-    '_ _ <:purpleflower:1557500052107304981>  reason  :',
-    '_ _ ⎯⎯  no vouch = warranty voided',
+    `_ _ <:purpleflower:1557500052107304981>  item purchased  : ${String(product ?? 'Unknown product')}`,
+    '_ _ <:purpleflower:1557500052107304981>  reason  : no vouch = warranty voided',
     '_ _',
-    '_ _ ─────────────  :pinkletter:   ─────────────',
+    '_ _ ─────────────   <a:pinkletter:1562804355856597092>  ─────────────',
     '_ _',
   ].join('\n');
 }

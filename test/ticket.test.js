@@ -878,12 +878,10 @@ test('voided order notice uses the requested layout and includes buyer, item, an
     '_ _  <@1234567890>, your __warranty__ has been **voided**.',
     '_ _',
     '_ _ <:purpleflower:1557500052107304981>  user  :  alice  | 1234567890',
-    '_ _ <:purpleflower:1557500052107304981>  item purchased  :',
-    '_ _ ⎯⎯  dekor',
-    '_ _ <:purpleflower:1557500052107304981>  reason  :',
-    '_ _ ⎯⎯  no vouch = warranty voided',
+    '_ _ <:purpleflower:1557500052107304981>  item purchased  : dekor',
+    '_ _ <:purpleflower:1557500052107304981>  reason  : no vouch = warranty voided',
     '_ _',
-    '_ _ ─────────────  :pinkletter:   ─────────────',
+    '_ _ ─────────────   <a:pinkletter:1562804355856597092>  ─────────────',
     '_ _',
   ].join('\n'));
 });
