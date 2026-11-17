@@ -157,17 +157,21 @@ function orderStatusText(order) {
 function voidedOrderMessage(user, product) {
   const username = user?.username ?? 'unknown';
   const userId = user?.id ?? 'unknown';
+  const dolcevita = '<:dolcevita:1567562931326025738>';
+  const dolcevita2 = '<:dolcevita:1567562829001658428>';
+  const dolcevita3 = '<:dolcevita:1567562982634950746>';
   return [
-    '_ _ ─────────────  <:00_treat:1562793410157613156>  ─────────────',
     '_ _',
-    `_ _  ${user?.id ? `<@${user.id}>` : '@user'}, your __warranty__ has been **voided**.`,
+    `_ _  ${dolcevita2}${dolcevita3}${dolcevita}${dolcevita3}${dolcevita2}${dolcevita3}${dolcevita}${dolcevita3}${dolcevita2}${dolcevita3}${dolcevita}${dolcevita3}${dolcevita2}`,
+    `_ _      **warranty**   has   been   __voided__.   ${'<:dolcevita:1567562829001658428>'.repeat(7)}`,
     '_ _',
-    `_ _ <:purpleflower:1557500052107304981>  user  :  ${username}  | ${userId}`,
-    `_ _ <:purpleflower:1557500052107304981>  item purchased  : ${String(product ?? 'Unknown product')}`,
-    '_ _ <:purpleflower:1557500052107304981>  reason  : no vouch = warranty voided',
+    `_ _  <:cherry_blossom4:1562814208318378145>  user  ．．**${username}**`,
+    `_ _  <:cherry_blossom4:1562814208318378145>  id  ．．${userId}`,
+    `_ _  <:cherry_blossom4:1562814208318378145>  item purchased ．．__${String(product ?? 'Unknown product')}__`,
+    '_ _  <:cherry_blossom4:1562814208318378145>  reason  ．．**no vouch within 12 hours**',
     '_ _',
-    '_ _ ─────────────   <a:pinkletter:1562804355856597092>  ─────────────',
-    '_ _',
+    `_ _  please **__vouch__** next time.  thank you ! ${'<:dolcevita:1567562829001658428>'.repeat(19)}`,
+    `_ _  ${'<:Bandage:1566436975416844298>'.repeat(13)}`,
   ].join('\n');
 }
 

@@ -873,16 +873,17 @@ test('voided order notice uses the requested layout and includes buyer, item, an
   }, 'dekor');
 
   assert.equal(message, [
-    '_ _ ─────────────  <:00_treat:1562793410157613156>  ─────────────',
     '_ _',
-    '_ _  <@1234567890>, your __warranty__ has been **voided**.',
+    '_ _  <:dolcevita:1567562829001658428><:dolcevita:1567562982634950746><:dolcevita:1567562931326025738><:dolcevita:1567562982634950746><:dolcevita:1567562829001658428><:dolcevita:1567562982634950746><:dolcevita:1567562931326025738><:dolcevita:1567562982634950746><:dolcevita:1567562829001658428><:dolcevita:1567562982634950746><:dolcevita:1567562931326025738><:dolcevita:1567562982634950746><:dolcevita:1567562829001658428>',
+    `_ _      **warranty**   has   been   __voided__.   ${'<:dolcevita:1567562829001658428>'.repeat(7)}`,
     '_ _',
-    '_ _ <:purpleflower:1557500052107304981>  user  :  alice  | 1234567890',
-    '_ _ <:purpleflower:1557500052107304981>  item purchased  : dekor',
-    '_ _ <:purpleflower:1557500052107304981>  reason  : no vouch = warranty voided',
+    '_ _  <:cherry_blossom4:1562814208318378145>  user  ．．**alice**',
+    '_ _  <:cherry_blossom4:1562814208318378145>  id  ．．1234567890',
+    '_ _  <:cherry_blossom4:1562814208318378145>  item purchased ．．__dekor__',
+    '_ _  <:cherry_blossom4:1562814208318378145>  reason  ．．**no vouch within 12 hours**',
     '_ _',
-    '_ _ ─────────────   <a:pinkletter:1562804355856597092>  ─────────────',
-    '_ _',
+    `_ _  please **__vouch__** next time.  thank you ! ${'<:dolcevita:1567562829001658428>'.repeat(19)}`,
+    `_ _  ${'<:Bandage:1566436975416844298>'.repeat(13)}`,
   ].join('\n'));
 });
 
